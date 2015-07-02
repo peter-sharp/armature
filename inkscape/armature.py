@@ -34,64 +34,64 @@ class Armature(inkex.Effect):
 		self.OptionParser.add_option("",   "--active-tab", action="store", type="string", dest="active_tab", default="",	help="Defines which tab is active")
 		self.OptionParser.add_option("",   "--newLayerSet", action="store", type="string", dest="newLayerSet", default="",	help="Creates new layer set.")
 		self.OptionParser.add_option("",   "--activeLayerSet", action="store", type="string", dest="activeLayerSet", default="",	help="Sets active layer set.")
-		
+
 		self.OptionParser.add_option("",   "--wireframesTitle", action="store", type="string", dest="wireframesTitle", default="",	help="Sets the title of the page.")
 		self.OptionParser.add_option("",   "--fileName", action="store", type="string", dest="fileName", default="",	help="Filename to be generated.")
 	def effect(self):
-		#inkex.errormsg('SVG FILE: %s' % self.svg_file)		
-		#outfile = os.path.join(os.path.dirname(self.svg_file), 'stuff.html')		
+		#inkex.errormsg('SVG FILE: %s' % self.svg_file)
+		#outfile = os.path.join(os.path.dirname(self.svg_file), 'stuff.html')
 		#stream= open(outfile,"w");
-		#svg = self.document.getroot() 
+		#svg = self.document.getroot()
 		#stream.write( inkex.etree.tostring( svg ) )
-		#stream.close()	
+		#stream.close()
 		#inkex.errormsg( "File written:" + os.path.join(os.path.dirname(self.svg_file)) )
 		#return
-		
+
 		#why does active_tab have quotes? Who knows.
-		self.activeTab =  str(self.options.active_tab).replace('"','') 
+		self.activeTab =  str(self.options.active_tab).replace('"','')
 		if self.activeTab=='createLayerSetPage':
 			self.startRendering()
 		elif self.activeTab=='generateWireframes':
 			#read HTML file
 			svg = self.document.getroot()
-		
-			htmlData = readToEnd(os.path.join('armature','armature.html'))			
+
+			htmlData = readToEnd(os.path.join('armature','armature.html'))
 			jsData =  readToEnd( os.path.join('armature','armature.js'))
-			
+
 			dirName = os.path.dirname(self.svg_file)
 			outfile =  os.path.join(dirName, self.options.fileName)
 			stream =  open(outfile,"w");
-			
+
 			htmlData = htmlData.replace('{#wireframesTitle}','Armature Wireframes HTML wrapper') \
 							   .replace('{#armatureJs}',jsData) \
 							   .replace('{#svg}',inkex.etree.tostring(svg) ) \
-	 
+
 			stream.write( htmlData )
 			stream.close()
 			inkex.errormsg('Wireframes generated.  You can find them here: \n %s' % outfile  )
 		elif not(self.options.activeLayerSet is None):
 			layerSetId=self.options.activeLayerSet
-		 
+
 			dataNode = self.getElementById('ArmatureDataNode-%s' % layerSetId )
-			
+
 			if (dataNode is None):
 				inkex.errormsg('Layerset %s does not exist.' % layerSetId)
 			else:
 				layerStates=parseStyle( dataNode.get( inkex.addNS('label', 'inkscape')) )
 				self.toggleLayers(layerStates['on'].split(','),True)
 				self.toggleLayers(layerStates['off'].split(','),False)
-			
+
 		else:
 			inkex.errormsg('Please enter a layerset name to select.')
-	 
-			
+
+
 	#effect specific implementation
 	def toggleLayers(self, layers, state):
 		display='inline'
 		if not state: display='none'
 		for layer in layers:
 			el=self.getElementById( layer.strip())
-						
+
 			if (not el is None):
 				style=parseStyle( el.get('style') )
 				style['display'] = display
@@ -101,50 +101,50 @@ class Armature(inkex.Effect):
 	def startRendering(self):
 		self.cursorY = 310
 		self.svg = self.document.getroot()
-		self.width= inkex.unittouu(self.svg.get('width'))
-		self.height= inkex.unittouu(self.svg.get('height'))
-		
+		self.width= inkex.Effect.unittouu(self.svg.get('width'))
+		self.height= inkex.Effect.unittouu(self.svg.get('height'))
+
 		#draw the UI and create layers, if it's not been done yet
 		self.renderArmatureUI()
-		
+
 		if not self.options.newLayerSet is None:
 			#find out what the state of the layers are
 			layerInfo=self.getLayerInfo()
 			self.updateArmatureData(self.options.newLayerSet,layerInfo)
 		else:
 			inkex.errormsg("Enter a title to update an existing set, or create a new one.")
-			
+
 	def getLayerInfo(self):
 		result=""
 		layers=self.svg.xpath('//svg:g[@inkscape:groupmode="layer"]', namespaces=inkex.NSS)
 		armatureLayerInfo = { 'on' : [], 'off' : []}
-	 
+
 		for layer in layers:
 			id = layer.get('id')
 			className= layer.get('class')
-			
+
 			#ignore internal layers used for UI and data
 			if (not className=='armature-internal'):
-				layer.set('id', layer.get(inkex.addNS('label', 'inkscape')).replace(' ',''))			
+				layer.set('id', layer.get(inkex.addNS('label', 'inkscape')).replace(' ',''))
 				layerStyle = parseStyle( layer.get('style') )
-		
+
 				if ('display' in layerStyle and layerStyle['display']=='none'):
 					armatureLayerInfo['off'].append( layer.get('id') )
 				else:
 					armatureLayerInfo['on'].append( layer.get('id') )
-		
+
 		return armatureLayerInfo
 
 	#updates an existing row, if one does not exist, one is created
 	def updateArmatureData(self,layerSetName,layerGroup):
 		stuff = ""
 		layerSetId = layerSetName.replace(' ','')
-		
+
 		#has a data node been created
 		query='//*[@class="data-node %s"]' % layerSetId
-		nodes=self.armatureLayer.xpath(query)		
-	
-		if not nodes is None and len(nodes)>0:	
+		nodes=self.armatureLayer.xpath(query)
+
+		if not nodes is None and len(nodes)>0:
 		#find the node, and update it
 
 			for n in nodes:
@@ -153,7 +153,7 @@ class Armature(inkex.Effect):
 					currentData['on']=layerGroup['on']
 				else:
 					currentData['off']=layerGroup=['off']
-					
+
 				n.set(inkex.addNS('label', 'inkscape'), formatStyle(currentData) )
 		else:
 			yNodes=self.armatureLayer.xpath('//*[@y]')
@@ -163,14 +163,14 @@ class Armature(inkex.Effect):
 				if not className is None and 'data-node' in className:
 					newY = float(yNode.get('y'))
 					if newY>maxY: maxY=newY
-		
+
 			if maxY>self.cursorY: self.cursorY = maxY
-			self.cursorY+=35			
+			self.cursorY+=35
 			self.renderArmatureData(layerSetId,layerGroup)
-			
-			
+
+
 		#inkex.errormsg(stuff)
-	#create new armature	
+	#create new armature
 	def renderArmatureData(self,layerSetId,layerGroup):
 		title = inkex.etree.SubElement(self.armatureLayer,'text')
 		title.set('style', formatStyle(ArmatureRowLabelStyle))
@@ -182,9 +182,9 @@ class Armature(inkex.Effect):
 		title.text=layerSetId
 		style ={'set':layerSetId, 'on': ','.join(layerGroup['on']), 'off' : ','.join(layerGroup['off'])}
 		title.set( inkex.addNS('label', 'inkscape'), formatStyle( style ) )
-																   
-		self.cursorY+=20 
-	
+
+		self.cursorY+=20
+
 
 	def renderArmatureUI(self):
 		armatureContainer = self.getElementById('ArmatureInfo')
@@ -192,19 +192,19 @@ class Armature(inkex.Effect):
 			#main container
 			curY=50
 			armatureContainer = inkex.etree.SubElement(self.svg, 'g')
-	
+
 			armatureContainer.set('id','ArmatureInfo')
 			armatureContainer.set(inkex.addNS('label', 'inkscape'), 'Armature')
 			armatureContainer.set(inkex.addNS('groupmode', 'inkscape'), 'layer')
 			armatureContainer.set('class','armature-internal')
-			
+
 			armatureUI = inkex.etree.SubElement(armatureContainer, 'g')
-			armatureUI.set(inkex.addNS('label', 'inkscape'), 'Armature UI')	
+			armatureUI.set(inkex.addNS('label', 'inkscape'), 'Armature UI')
 			#armatureUI.set(inkex.addNS('groupmode', 'inkscape'), 'layer')
 			armatureUI.set('id','ArmatureUI')
 			armatureUI.set('class','armature-internal')
 			armatureUI.set( inkex.addNS('insensitive','sodipodi'),'true')
-			
+
 			#TODO: could look into loading an SVG file for this UI
 			bg = inkex.etree.SubElement(armatureUI, 'rect')
 			bg.set('width',str(self.width))
@@ -212,20 +212,20 @@ class Armature(inkex.Effect):
 			bg.set('fill','#FFFFFF')
 			bg.set('x','0')
 			bg.set('y','0')
- 
+
 			uiData= open('armature.ui.svg',"r").read()
 			armatureUI.append(  inkex.etree.fromstring(uiData))
-	
+
 			self.armatureLayer = inkex.etree.SubElement(armatureContainer, 'g')
 			self.armatureLayer.set(inkex.addNS('label', 'inkscape'), 'Armature Data')
 			self.armatureLayer.set(inkex.addNS('groupmode', 'inkscape'), 'layer')
 			self.armatureLayer.set('id','ArmatureData')
 			self.armatureLayer.set('y', '0' )
-			self.armatureLayer.set('class','armature-internal')					
-					
+			self.armatureLayer.set('class','armature-internal')
+
 		else:
 			self.armatureLayer = self.getElementById('ArmatureData')
-	
+
 if __name__ == '__main__':
   e = Armature()
   e.affect()
