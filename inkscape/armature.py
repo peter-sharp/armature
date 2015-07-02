@@ -101,8 +101,8 @@ class Armature(inkex.Effect):
 	def startRendering(self):
 		self.cursorY = 310
 		self.svg = self.document.getroot()
-		self.width= inkex.Effect.unittouu(self.svg.get('width'))
-		self.height= inkex.Effect.unittouu(self.svg.get('height'))
+		self.width= self.unittouu(self.svg.get('width'))
+		self.height= self.unittouu(self.svg.get('height'))
 
 		#draw the UI and create layers, if it's not been done yet
 		self.renderArmatureUI()
