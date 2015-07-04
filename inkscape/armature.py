@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 import inkex
+import xml
 import os
 import gettext
 _ = gettext.gettext
 from simplestyle import *
+from gi.repository import Gtk
 
 #styles
 ArmatureTitleStyle = { 'font-family' : 'arial', 'font-size' : '24pt' } #'text-align' : 'center', 'text-anchor' : 'middle',
@@ -18,6 +20,12 @@ def readToEnd(fileName):
 	stream.close()
 	return data
 
+class UiEventHandler:
+	def onDeleteWindow(self, *args):
+        Gtk.main_quit(*args)
+
+    def onApply(self, button):
+        return True
 
 class Armature(inkex.Effect):
 	def __init__(self):
@@ -38,37 +46,13 @@ class Armature(inkex.Effect):
 		self.OptionParser.add_option("",   "--wireframesTitle", action="store", type="string", dest="wireframesTitle", default="",	help="Sets the title of the page.")
 		self.OptionParser.add_option("",   "--fileName", action="store", type="string", dest="fileName", default="",	help="Filename to be generated.")
 	def effect(self):
-		#inkex.errormsg('SVG FILE: %s' % self.svg_file)
-		#outfile = os.path.join(os.path.dirname(self.svg_file), 'stuff.html')
-		#stream= open(outfile,"w");
-		#svg = self.document.getroot()
-		#stream.write( inkex.etree.tostring( svg ) )
-		#stream.close()
-		#inkex.errormsg( "File written:" + os.path.join(os.path.dirname(self.svg_file)) )
-		#return
 
 		#why does active_tab have quotes? Who knows.
 		self.activeTab =  str(self.options.active_tab).replace('"','')
 		if self.activeTab=='createLayerSetPage':
-			self.startRendering()
+			self.startRenderingSvgUi()
 		elif self.activeTab=='generateWireframes':
-			#read HTML file
-			svg = self.document.getroot()
-
-			htmlData = readToEnd(os.path.join('armature','armature.html'))
-			jsData =  readToEnd( os.path.join('armature','armature.js'))
-
-			dirName = os.path.dirname(self.svg_file)
-			outfile =  os.path.join(dirName, self.options.fileName)
-			stream =  open(outfile,"w");
-
-			htmlData = htmlData.replace('{#wireframesTitle}','Armature Wireframes HTML wrapper') \
-							   .replace('{#armatureJs}',jsData) \
-							   .replace('{#svg}',inkex.etree.tostring(svg) ) \
-
-			stream.write( htmlData )
-			stream.close()
-			inkex.errormsg('Wireframes generated.  You can find them here: \n %s' % outfile  )
+			self.generateWireframes()
 		elif not(self.options.activeLayerSet is None):
 			layerSetId=self.options.activeLayerSet
 
@@ -98,7 +82,7 @@ class Armature(inkex.Effect):
 				el.set('style',formatStyle(style))
 
 	#render SVG UI
-	def startRendering(self):
+	def startRenderingSvgUi(self):
 		self.cursorY = 310
 		self.svg = self.document.getroot()
 		self.width= self.unittouu(self.svg.get('width'))
@@ -225,6 +209,26 @@ class Armature(inkex.Effect):
 
 		else:
 			self.armatureLayer = self.getElementById('ArmatureData')
+
+	def generateWireframes(self):
+		""" generates wire-frames from given layer-sets and outputs them into a single html file with javascript controls"""
+		#read HTML file
+		svg = self.document.getroot()
+
+		htmlData = readToEnd(os.path.join('armature','armature.html'))
+		jsData =  readToEnd( os.path.join('armature','armature.js'))
+
+		dirName = os.path.dirname(self.svg_file)
+		outfile =  os.path.join(dirName, self.options.fileName)
+		stream =  open(outfile,"w");
+
+		htmlData = htmlData.replace('{#wireframesTitle}','Armature Wireframes HTML wrapper') \
+						.replace('{#armatureJs}',jsData) \
+						.replace('{#svg}',inkex.etree.tostring(svg) ) \
+
+		stream.write( htmlData )
+		stream.close()
+		inkex.errormsg('Wireframes generated.  You can find them here: \n %s' % outfile  )
 
 if __name__ == '__main__':
   e = Armature()
